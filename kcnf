@@ -1,0 +1,13 @@
+comment "Chassis configuration"
+
+config CHASSIS_INV
+        bool "Swap left and right"
+        default n
+
+config CHASSIS_LEFT_INV
+        bool "Invert left motor direction"
+        default n
+
+config CHASSIS_RIGHT_INV
+        bool "Invert right motor direction"
+        default y
