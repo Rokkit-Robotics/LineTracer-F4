@@ -5,6 +5,8 @@
 
 #include "chassis.h"
 
+#include <stdio.h>
+
 static GPIO_InitTypeDef GPIO_InitStruct = {
 	.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15,
 	.GPIO_Speed = GPIO_Speed_100MHz,
@@ -26,6 +28,17 @@ ANTARES_APP(blinky) {
 int main() {
 	gpio_init();	
 #endif
+
+        float i = 0.0;
+        while (1) {
+                /* printk("Hello World\n"); */
+                printf("Hello World %g\n", i);
+                i += 0.01;
+                /* early_putc('H'); */
+                /* putchar('H'); */
+                GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);
+                delay_ms(500);
+        }
 
         /* GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15); */
         chassis_cmd(1); // enable chassis

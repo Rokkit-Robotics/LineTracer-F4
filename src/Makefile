@@ -1,1 +1,1 @@
-objects-y+=main.o chassis.o
+objects-y+=main.o chassis.o newlib.o
