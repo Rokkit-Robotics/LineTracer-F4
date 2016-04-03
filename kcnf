@@ -1,3 +1,15 @@
+comment "UART configuration"
+
+comment "Data stream UART is UART1"
+config UART_DS_BAUDRATE
+        int "Data stream UART baudrate"
+        default 115200
+
+comment "Debugging UART is UART2"
+config UART_DBG_BAUDRATE
+        int "Debug UART baudrate"
+        default 9600
+
 comment "Chassis configuration"
 
 config CHASSIS_INV

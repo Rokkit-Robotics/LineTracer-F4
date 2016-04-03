@@ -4,6 +4,8 @@
 #include <stm32f4xx_rcc.h>
 
 #include "chassis.h"
+#include "encoder.h"
+#include "timer.h"
 
 #include <stdio.h>
 
@@ -29,19 +31,20 @@ int main() {
 	gpio_init();	
 #endif
 
-        float i = 0.0;
+        chassis_cmd(1); // enable chassis
+        /* chassis_write(1024, 1024); */
+        /* chassis_write(2500, 2500); */
+
         while (1) {
                 /* printk("Hello World\n"); */
-                printf("Hello World %g\n", i);
-                i += 0.01;
+                printf("[%ld] Left encoder speed: %g, path %ld\n", timer_getMillis(), enc_getSpeed(LEFT), enc_getPath(LEFT));
                 /* early_putc('H'); */
                 /* putchar('H'); */
-                GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);
-                delay_ms(500);
+                GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14);
+                delay_ms(40);
         }
 
         /* GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15); */
-        chassis_cmd(1); // enable chassis
 
         for (int i = 0; i < 4096; i++) {
                 chassis_write(i, i);
