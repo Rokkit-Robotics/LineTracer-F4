@@ -56,6 +56,8 @@ ANTARES_INIT_LOW(encoders_gpio_init)
         GPIO_PinAFConfig(GPIOE, GPIO_PinSource9, GPIO_AF_TIM1);
         GPIO_PinAFConfig(GPIOE, GPIO_PinSource11, GPIO_AF_TIM1);
 
+        GPIO_PinAFConfig(GPIOC, GPIO_PinSource6, GPIO_AF_TIM8);
+        GPIO_PinAFConfig(GPIOC, GPIO_PinSource7, GPIO_AF_TIM8);
 
         GPIO_Init(GPIOE, &enc1_init);
         GPIO_Init(GPIOC, &enc2_init);
