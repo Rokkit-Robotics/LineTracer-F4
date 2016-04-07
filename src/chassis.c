@@ -1,6 +1,11 @@
 #include <arch/antares.h>
 
 #include "chassis.h"
+#include "shell.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <stm32f4xx_gpio.h>
 #include <stm32f4xx_rcc.h>
@@ -101,6 +106,40 @@ ANTARES_INIT_LOW(chassis_init)
         GPIO_Init(GPIOB, &GPIOB_OutInitStruct);
         GPIO_Init(GPIOD, &GPIOD_OutInitStruct);
 }
+
+void chassis_callback(int argc, char *argv[]);
+
+ANTARES_INIT_HIGH(chassis_shell_init)
+{
+        shell_register("chassis", chassis_callback);
+}
+
+void chassis_callback(int argc, char *argv[])
+{
+        if (argc == 1) {
+                printf("Usage: %s [write|stop|enable|disable]\n", argv[0]);
+                return;
+        }
+
+        if (!strcmp(argv[1], "write")) {
+                if (argc != 4) {
+                        printf("Usage: %s write _left _right\n", argv[0]);
+                        return;
+                }
+
+                int left = atoi(argv[2]);
+                int right = atoi(argv[3]);
+
+                chassis_write(left, right);
+        } else if (!strcmp(argv[1], "stop")) {
+                chassis_write(0, 0);
+        } else if (!strcmp(argv[1], "enable")) {
+                chassis_cmd(1);
+        } else if (!strcmp(argv[1], "disable")) {
+                chassis_cmd(0);
+        }
+}
+
 
 void chassis_set_dir(chassis_unit_t u, chassis_dir_t dir)
 {

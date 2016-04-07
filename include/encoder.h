@@ -12,7 +12,7 @@
 #endif
 
 // after this time (in ms) we think that encoder speed is 0
-#define ENC_ZERO_DELAY 64
+#define ENC_ZERO_DELAY 63
 
 #define ENC_RESOLUTION 64
 

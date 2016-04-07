@@ -6,6 +6,7 @@
 #include "chassis.h"
 #include "encoder.h"
 #include "timer.h"
+#include "shell.h"
 
 #include <stdio.h>
 
@@ -24,47 +25,48 @@ ANTARES_INIT_LOW(gpio_init)
 }
 
 
-#ifdef CONFIG_ANTARES_STARTUP
 ANTARES_APP(blinky) {
-#else
-int main() {
-	gpio_init();	
-#endif
 
-        chassis_cmd(1); // enable chassis
-        /* chassis_write(1024, 1024); */
-        /* chassis_write(2500, 2500); */
+        printf("Hello!\n");
+
+        while (1) {
+                shell_loop();
+        }
+        /* while (1) { */
+                /* int c; */
+                /* c = getchar(); */
+                /* printf("I received: %d\n", c); */
+        /* } */
+
+
+        float l_prev = 0;
+        float r_prev = 0;
+
+        const float K = 0.4;
+
+        /* while (1) { */
+                /* printf("%g %g\n", enc_getPath(LEFT), enc_getPath(RIGHT)); */
+                /* delay_ms(40); */
+        /* } */
 
         while (1) {
                 /* printk("Hello World\n"); */
-                printf("[%ld] Left encoder speed: %g, path %ld\n", timer_getMillis(), enc_getSpeed(LEFT), enc_getPath(LEFT));
+                float l_spd = enc_getSpeed(LEFT);
+                float r_spd = enc_getSpeed(RIGHT);
+
+                /* printf("%g %g\n", l_prev, r_prev); */
+                printf("%g %g\n", l_spd, r_spd);
+
+                l_prev = K * l_spd + (1 - K) * l_prev;
+                r_prev = K * r_spd + (1 - K) * r_prev;
+
                 /* early_putc('H'); */
                 /* putchar('H'); */
-                GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14);
+                /* GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14); */
                 delay_ms(40);
         }
 
         /* GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15); */
-
-        for (int i = 0; i < 4096; i++) {
-                chassis_write(i, i);
-                delay_ms(1);
-        }
-
-        for (int i = 4096; i > -4096; i--) {
-                chassis_write(i, i);
-                delay_ms(1);
-        }
-
-        for (int i = -4096; i < 0; i++) {
-                chassis_write(i, i);
-                delay_ms(1);
-        }
-
-        /* GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15); */
-        /* delay_ms(500); */
-        /* GPIO_ResetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15); */
-        /* delay_ms(500); */
 }
 
 

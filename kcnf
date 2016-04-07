@@ -1,3 +1,25 @@
+comment "Shell configuration"
+
+config SHELL_MAX_FUNCTIONS
+        int "Maximum number of functions (hash table size)"
+        default 17
+
+config SHELL_HASH_STEP
+        int "Hashtable step"
+        default 3
+
+config SHELL_MAX_ARGS
+        int "Maximum number of arguments for function"
+        default 8
+
+config SHELL_MAX_FUNCNAME
+        int "Maximum length of function name"
+        default 32
+
+config SHELL_BUFFER
+        int "Input buffer length (for name and args)"
+        default 256
+
 comment "UART configuration"
 
 comment "Data stream UART is UART1"
