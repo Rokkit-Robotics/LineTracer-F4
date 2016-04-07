@@ -20,6 +20,16 @@ config SHELL_BUFFER
         int "Input buffer length (for name and args)"
         default 256
 
+comment "EEPROM configuration"
+
+config EEPROM_ADDRESS
+        hex "EEPROM I2C address (left-aligned, bit 0 for R/W)"
+        default 0xA0
+
+config EEPROM_SIZE
+        int "EEPROM size used"
+        default 2048
+
 comment "UART configuration"
 
 comment "Data stream UART is UART1"
