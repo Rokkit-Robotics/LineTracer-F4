@@ -42,6 +42,32 @@ config UART_DBG_BAUDRATE
         int "Debug UART baudrate"
         default 9600
 
+comment "Encoders configuraion"
+
+config ENC_SWAP
+        bool "Swap left and right"
+        default y
+
+config ENC_LEFT_INV
+        bool "Inverse left channel"
+        default y
+
+config ENC_RIGHT_INV
+        bool "Inverse right channel
+        default y
+
+config ENC_RESOLUTION
+        int "Encoders resolution"
+        default 128
+
+config ENC_WHEEL_DIAM
+        int "Encoders wheel diameter in mm"
+        default 82
+
+config BASE_DIAM
+        int "Robot base diameter (from wheel to wheel) in mm"
+        default 165
+
 comment "Chassis configuration"
 
 config CHASSIS_INV

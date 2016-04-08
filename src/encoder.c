@@ -255,11 +255,12 @@ static inline void enc_process_left()
 
         m_encLeft_lastUpdate = timer_getMillis();
 
-#ifndef ENC_LEFT_INVERT
-        if (GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_9) ^ GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_11)) {
+#ifndef CONFIG_ENC_LEFT_INV
+        if (GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_9) ^ GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_11))
 #else
-        if (!(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_9) ^ GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_11))) {
+        if (!(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_9) ^ GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_11)))
 #endif
+        {
                 m_encLeft_path++;
                 m_encLeft_dir = 1; // forward
         } else {
@@ -283,11 +284,12 @@ static inline void enc_process_right()
 
         m_encRight_lastUpdate = timer_getMillis();
 
-#ifndef ENC_RIGHT_INVERT
-        if (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_6) ^ GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_7)) {
+#ifndef CONFIG_ENC_RIGHT_INV
+        if (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_6) ^ GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_7))
 #else
-        if (!(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_6) ^ GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_7))) {
+        if (!(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_6) ^ GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_7)))
 #endif
+        {
                 m_encRight_path++;
                 m_encRight_dir = 1; // forward
         } else {
@@ -315,28 +317,17 @@ void TIM8_CC_IRQHandler(void)
         }
 }
 
-#if 0
-void EXTI9_5_IRQHandler(void)
-{
-        GPIO_ToggleBits(GPIOD, GPIO_Pin_15);
-        if (EXTI_GetITStatus(EXTI_Line6) != RESET) { // left channel
-                enc_process_left();
-                EXTI_ClearITPendingBit(EXTI_Line6);
-        }
-
-        if (EXTI_GetITStatus(EXTI_Line5) != RESET) { // right channel
-                enc_process_right();
-                EXTI_ClearITPendingBit(EXTI_Line5);
-        }
-}
-#endif
-
 float enc_getSpeed(int channel)
 {
         int32_t cur, prev, dir, lastUpdate;
         int ready;
 
-        if (channel == LEFT) {
+#ifdef CONFIG_ENC_SWAP
+        if (channel == RIGHT)
+#else
+        if (channel == LEFT) 
+#endif
+        {
                 NVIC_DisableIRQ(TIM1_CC_IRQn);
                 lastUpdate = m_encLeft_lastUpdate;
                 cur = m_encLeft_cur;
@@ -379,7 +370,12 @@ float enc_getSpeed(int channel)
 
 int32_t enc_getPath(int channel)
 {
-        if (channel == LEFT) {
+#ifdef CONFIG_ENC_SWAP
+        if (channel == RIGHT)
+#else
+        if (channel == LEFT) 
+#endif
+        {
                 return m_encLeft_path;
         } else {
                 return m_encRight_path;
@@ -388,7 +384,12 @@ int32_t enc_getPath(int channel)
 
 void enc_reset(int channel)
 {
-        if (channel == LEFT) {
+#ifdef CONFIG_ENC_SWAP
+        if (channel == RIGHT)
+#else
+        if (channel == LEFT) 
+#endif
+        {
                 m_encLeft_path = 0;
         } else {
                 m_encRight_path = 0;
