@@ -1,4 +1,5 @@
 #include "encoder.h"
+#include "encoder_high.h"
 
 #include "timer.h"
 
@@ -263,9 +264,19 @@ static inline void enc_process_left()
         {
                 m_encLeft_path++;
                 m_encLeft_dir = 1; // forward
+#ifndef CONFIG_ENC_SWAP
+                encoder_process_p(1, 0);
+#else
+                encoder_process_p(0, 1);
+#endif
         } else {
                 m_encLeft_path--;
                 m_encLeft_dir = -1; // backward
+#ifndef CONFIG_ENC_SWAP
+                encoder_process_p(-1, 0);
+#else
+                encoder_process_p(0, -1);
+#endif
         }
 }
 
@@ -292,9 +303,19 @@ static inline void enc_process_right()
         {
                 m_encRight_path++;
                 m_encRight_dir = 1; // forward
+#ifndef CONFIG_ENC_SWAP
+                encoder_process_p(0, 1);
+#else
+                encoder_process_p(1, 0);
+#endif
         } else {
                 m_encRight_path--;
                 m_encRight_dir = -1; // backward
+#ifndef CONFIG_ENC_SWAP
+                encoder_process_p(0, -1);
+#else
+                encoder_process_p(-1, 0);
+#endif
         }
 }
 
@@ -357,7 +378,7 @@ float enc_getSpeed(int channel)
         if (delta == 0)
                 delta = 1;
 
-        float spd = 2 * M_PI / ENC_RESOLUTION / delta * 1e6;
+        float spd = 2 * M_PI / CONFIG_ENC_RESOLUTION / delta * 1e6;
         
         /* return delta; */
         /* return spd; */

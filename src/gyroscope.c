@@ -1,4 +1,5 @@
 #include "gyroscope.h"
+#include "gyroscope_high.h"
 
 #include <arch/antares.h>
 #include <arch/delay.h>
@@ -167,6 +168,8 @@ static void process_dma(void)
 {
         // copy data from buffer to actual data
         memcpy((uint8_t *) &m_actualData, (uint8_t *) spi_rxbuf + 1, 6);
+
+        gyroscope_process_p(&m_actualData);       
 }
 
 // external interrupt from gyroscope
@@ -361,9 +364,11 @@ void gyro_callback(int argc, char *argv[])
                 spi_test();
         } else if (!strcmp(argv[1], "speed")) {
                 do {
-                        struct gyro_data *d = gyro_getData_imm();
+                        struct gyro_speed d;
+                        gyroscope_read_speed(&d);
+
                         /* struct gyro_data *d = gyro_getData(); */
-                        printf("%d %d %d\n", d->x, d->y, d->z);
+                        printf("%g %g %g\n", d.x, d.y, d.z);
                         delay_ms(35);
                 } while (!early_avail() && loop);
         } else if (!strcmp(argv[1], "dmaspeed")) {
@@ -372,6 +377,18 @@ void gyro_callback(int argc, char *argv[])
                         printf("%d %d %d\n", d->x, d->y, d->z);
                         delay_ms(35);
                 } while (!early_avail() && loop);
+        } else if (!strcmp(argv[1], "pos")) {
+                do {
+                        struct gyro_pos d;
+                        gyroscope_read_pos(&d);
+
+                        printf("%g %g %g\n", d.x, d.y, d.z);
+                        delay_ms(35);
+                } while (!early_avail() && loop);
+        } else if (!strcmp(argv[1], "calibrate")) {
+                gyroscope_calibrate();
+        } else if (!strcmp(argv[1], "reset")) {
+                gyroscope_reset();
         }
 
         return;
@@ -387,8 +404,21 @@ ANTARES_INIT_HIGH(gyro_hw_init)
         NVIC_DisableIRQ(EXTI1_IRQn);
         uint8_t reg[5];
         
-        // CTRL_REG1 (20h): data rate 760 Hz, cutoff 100, normal mode, XYZ active
-        reg[0]= 0xFF;
+        // CTRL_REG1 (20h): max cutoff, normal mode, XYZ active
+        reg[0]= 0x3F;
+
+#if (CONFIG_GYRO_RATE == 95)
+        // doesn't change anything
+#elif (CONFIG_GYRO_RATE == 190)
+        reg[0] |= 0x40;
+#elif (CONFIG_GYRO_RATE == 380)
+        reg[0] |= 0x80;
+#elif (CONFIG_GYRO_RATE == 760)
+        reg[0] |= 0x80 | 0x40;
+#else
+#error "Wrong gyroscope rate, available 95, 190, 380 and 760 Hz"
+#endif
+        
 
         // CTRL_REG2 (21h): high-pass default
         reg[1] = 0;
@@ -397,8 +427,17 @@ ANTARES_INIT_HIGH(gyro_hw_init)
         /* reg[2] = 0x08; */
         reg[2] = 0; // need to clear DRDY flag first
 
-        // CTRL_REG4 (23h): LSB, scale 500 dps, 4-wire SPI
-        reg[3] = 0x10;
+        // CTRL_REG4 (23h): LSB, block reading, 4-wire SPI
+        reg[3] = 0x80;
+#if (CONFIG_GYRO_SCALE == 250)
+        // keep it as is
+#elif (CONFIG_GYRO_SCALE == 500)
+        reg[3] |= 0x10;
+#elif (CONFIG_GYRO_SCALE == 2000)
+        reg[3] |= 0x20;
+#else
+#error "Wrong gyro scale, must be 250, 500 or 2000 dps"
+#endif
 
         // CTRL_REG5
         reg[4] = 0;

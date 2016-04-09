@@ -53,7 +53,7 @@ config ENC_LEFT_INV
         default y
 
 config ENC_RIGHT_INV
-        bool "Inverse right channel
+        bool "Inverse right channel"
         default y
 
 config ENC_RESOLUTION
@@ -68,6 +68,16 @@ config BASE_DIAM
         int "Robot base diameter (from wheel to wheel) in mm"
         default 165
 
+comment "Gyroscope configuration"
+
+config GYRO_RATE
+        int "Read rate (95, 190, 380 or 760)"
+        default 380
+
+config GYRO_SCALE
+        int "Scale (250, 500 or 2000 dps)"
+        default 500
+
 comment "Chassis configuration"
 
 config CHASSIS_INV
@@ -81,3 +91,9 @@ config CHASSIS_LEFT_INV
 config CHASSIS_RIGHT_INV
         bool "Invert right motor direction"
         default y
+
+comment "Movement configuration"
+
+config MOVE_FQ
+        int "Position control rate"
+        default 100
