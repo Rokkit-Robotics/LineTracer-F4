@@ -19,7 +19,7 @@ static uint8_t eeprom_map[CONFIG_EEPROM_SIZE];
 
 // EEPROM is connected to I2C1 on PB8 and PB9
 
-ANTARES_INIT_LOW(eeprom_gpio_init)
+ANTARES_INIT_LOW(eeprom_init_low)
 {
         RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
@@ -35,10 +35,7 @@ ANTARES_INIT_LOW(eeprom_gpio_init)
 
         GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_I2C1);
         GPIO_PinAFConfig(GPIOB, GPIO_PinSource9, GPIO_AF_I2C1);
-}
 
-ANTARES_INIT_LOW(eeprom_i2c_init)
-{
         RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
 
         // reset i2c
@@ -60,6 +57,8 @@ ANTARES_INIT_LOW(eeprom_i2c_init)
         I2C_Cmd(I2C1, ENABLE);
         I2C_Init(I2C1, &i2c);
 
+        // read eeprom right on start
+        eeprom_load();
 }
 
 void eeprom_callback(int argc, char *argv[])
@@ -283,9 +282,9 @@ int eeprom_save(void)
         return 0;
 }
 
-uint8_t *eeprom_getptr(void)
+uint8_t *eeprom_getptr(int offset)
 {
-        return eeprom_map;
+        return eeprom_map + offset;
 }
 
 void eeprom_write_u8(int address, uint8_t value)
