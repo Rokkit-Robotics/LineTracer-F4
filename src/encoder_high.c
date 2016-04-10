@@ -36,7 +36,7 @@ void enc_high_callback(int argc, char *argv[])
                 do {
                         struct encoder_pos p;
                         encoder_get_pos(&p);
-                        printf("%g %g %g\n", p.x, p.y, p.theta);
+                        printf("%g %g %g | %g %g\n", p.x, p.y, p.theta, p.left, p.right);
                         delay_ms(35);
                 } while (loop && !early_avail());
         } else if (!strcmp(argv[1], "setcor")) {
@@ -65,7 +65,15 @@ void encoder_reset_pos(void)
 {
         m_encPos.x = 0.0;
         m_encPos.y = 0.0;
+        m_encPos.left = 0.0;
+        m_encPos.right = 0.0;
         m_encPos.theta = 0.0;
+}
+
+void encoder_reset_path(void)
+{
+        m_encPos.left = 0.0;
+        m_encPos.right = 0.0;
 }
 
 void encoder_get_pos_radians(struct encoder_pos *data)
@@ -77,6 +85,9 @@ void encoder_get_pos(struct encoder_pos *data)
 {
         data->x = m_encPos.x;
         data->y = m_encPos.y;
+
+        data->left = m_encPos.left;
+        data->right = m_encPos.right;
 
         data->theta = m_encPos.theta / M_PI * 180;
 }
@@ -95,6 +106,9 @@ void encoder_process_p(int32_t di_left, int32_t di_right)
         // process delta from ticks to millimeters
         float d_left = di_left * M_PI * CONFIG_ENC_WHEEL_DIAM / CONFIG_ENC_RESOLUTION;
         float d_right = di_right * M_PI * CONFIG_ENC_WHEEL_DIAM / CONFIG_ENC_RESOLUTION;
+
+        m_encPos.left += d_left;
+        m_encPos.right += d_right;
 
         // calculate dtheta
         float dtheta = (d_right - d_left) / ((float) CONFIG_BASE_DIAM);
