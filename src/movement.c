@@ -42,12 +42,29 @@ static volatile struct move_line {
         int32_t base_speed;
 } m_moveLine;
 
+static volatile struct move_rotate {
+        int32_t speed;
+        float delta_angle;
+        float start_angle; // from encoders, obviously
+        
+        float current_pos;
+        
+        float min;
+        float max;
+
+        int32_t num_measures;
+
+        int32_t base_speed;
+} m_moveRotate;
+
 static volatile enum {
         MODE_LINE = 0,
         MODE_LINE_SPEED = 1,
         MODE_ROTATE = 2,
-        MODE_STOP = 3,
-        MODE_LAST = 4
+        MODE_ROTATE_SPEED = 3,
+        MODE_ROTATE_STAGE2 = 4,
+        MODE_STOP = 4,
+        MODE_LAST = 5
 } m_mode, m_cfgMode;
 
 static volatile int m_isBusy = 0;
@@ -104,6 +121,20 @@ void movement_cmd_callback(int argc, char *argv[])
                 sscanf(argv[2], "%g", &distance);
 
                 movement_start_line(speed, distance, 1);
+        } else if (!strcmp(argv[0], "rotate")) {
+                // need 2 args: speed and delta-angle
+                if (argc < 3) {
+                        printf("Rotate command args: [speed] [d_angle]\n");
+                        return;
+                }
+
+                int32_t speed = 0;
+                float d_angle = 0.0;
+
+                sscanf(argv[1], "%ld", &speed);
+                sscanf(argv[2], "%g", &d_angle);
+
+                movement_start_rotate(speed, d_angle, 1);
         }
 }
 
@@ -126,6 +157,42 @@ void movement_start_line(int32_t speed, float distance, int console)
                 encoder_get_pos(&enc);
 
                 printf("%ld %g %g\n", timer_getMillis() - start, enc.left, enc.right);
+        }
+
+        if (console) {
+                chassis_write(0, 0);
+                m_isBusy = 0;
+        }
+}
+
+void movement_start_rotate(int32_t speed, float delta_angle, int console)
+{
+        m_moveRotate.speed = speed;
+        m_moveRotate.delta_angle = delta_angle;
+        m_moveRotate.min = 0.0;
+        m_moveRotate.max = 0.0;
+        m_moveRotate.num_measures = 0; // just for not to divide by zero
+
+        struct encoder_pos enc;
+        encoder_get_pos(&enc);
+
+        m_moveRotate.start_angle = enc.theta;
+
+        gyroscope_reset();
+        encoder_reset_path();
+
+        // set flag to start moving
+        m_mode = MODE_ROTATE;
+        m_isBusy = 1;
+
+        int32_t start = timer_getMillis();
+
+        while (m_isBusy && console && !early_avail()) {
+                struct encoder_pos enc;
+                encoder_get_pos(&enc);
+
+                printf("%ld %g %g %g %g\n", timer_getMillis() - start, enc.left, enc.right, m_moveRotate.current_pos,
+                                m_moveRotate.max - m_moveRotate.min);
         }
 
         chassis_write(0, 0);
@@ -206,80 +273,8 @@ ANTARES_INIT_HIGH(movement_callback_init)
         m_moveSettings = (struct move_settings *) eeprom_getptr(0x100);
 }
 
-// Handling line
-// Params: base speed, base angle, distance
-void handle_line_speed(void)
-{
-        int mode = MODE_LINE_SPEED;
-        
-        struct encoder_pos enc;
-        encoder_get_pos(&enc);
-
-        float d = (enc.left + enc.right) / 2;
-        float path = m_moveSettings[mode].smooth;
-
-        // check if we are stopping - more important
-        if (fabs(m_moveLine.distance - d) < m_moveSettings[mode].smooth) { 
-                path = m_moveLine.distance - d;
-        } else if (fabs(d) < m_moveSettings[mode].smooth) {
-                path = d;
-        }
-
-        // required speed is a gradation
-        float spd = m_moveSettings[mode].min_speed + (m_moveLine.speed - m_moveSettings[mode].min_speed) * 
-                (path / m_moveSettings[mode].smooth);
-        
-        int speed = spd;
-
-        m_moveLine.base_speed = speed;
-}
-
-void handle_line(void)
-{
-        static float integral = 0.0, prev_error = 0.0;
-
-        const float dt = 1.0 / CONFIG_MOVE_FQ;
-        const int mode = MODE_LINE;
-
-        // get errors from encoder and gyro
-        struct encoder_pos enc;
-        struct gyro_pos gyro;
-
-        encoder_get_pos(&enc);
-        gyroscope_read_pos(&gyro);
-        
-        // if we have reached destination - time to stop
-        if (enc.left + enc.right > 2 * m_moveLine.distance) {
-                chassis_write(0, 0);
-                integral = 0;
-                prev_error = 0;
-
-                m_isBusy = 0;
-                return;
-        }
-
-        // error from encoder - path difference
-        float enc_error = enc.left - enc.right;
-
-        float error = m_moveSettings[mode].enc_weight * enc_error + m_moveSettings[mode].gyro_weight * gyro.z;
-
-        integral += error * dt;
-
-        float deriv = (error - prev_error) / dt;
-        prev_error = error;
-
-        float regulation = m_moveSettings[mode].p * error + m_moveSettings[mode].i * integral +
-                + m_moveSettings[mode].d * deriv;
-
-        int reg = (int) regulation;
-
-        chassis_write(m_moveLine.base_speed - reg, m_moveLine.base_speed + reg);
-}
-
-void handle_rotate(void)
-{
-        
-}
+#include "movement_line.c"
+#include "movement_rotate.c"
 
 void handle_stop(void)
 {
@@ -295,9 +290,12 @@ void TIM2_IRQHandler(void)
                                 handle_line_speed();
                                 handle_line();
                         } else if (m_mode == MODE_ROTATE) {
-                                /* handle_rotate_speed(); */
+                                handle_rotate_speed();
                                 handle_rotate();
-                        } else if (m_mode == MODE_STOP) {
+                        } else if (m_mode == MODE_ROTATE_STAGE2) {
+                                handle_rotate_speed();
+                                handle_rotate_stage2();
+                        } else if (m_mode == MODE_STOP) { // deprecated
                                 handle_stop();
                         }
                 }

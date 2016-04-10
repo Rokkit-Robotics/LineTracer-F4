@@ -18,7 +18,7 @@ static volatile float m_angle_correct = 1.0;
 void enc_high_callback(int argc, char *argv[])
 {
         if (argc == 1) {
-                printf("Usage: %s [pos|reset|setcor] [noloop|cor]", argv[0]);
+                printf("Usage: %s [pos|reset|setcor|getcor] [noloop|cor]\n", argv[0]);
                 return;
         }
 
@@ -48,6 +48,9 @@ void enc_high_callback(int argc, char *argv[])
                 float val;
                 sscanf(argv[2], "%g", &val);
                 encoder_set_angle_correction(val);
+        } else if (!strcmp(argv[1], "getcor")) {
+                printf("cor: %g\n", m_angle_correct);
+                return;
         }
 }
 

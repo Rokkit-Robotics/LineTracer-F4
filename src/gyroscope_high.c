@@ -10,6 +10,7 @@
 #include "shell.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define RING_SIZE 5
 
@@ -19,7 +20,7 @@ static volatile struct gyro_ringbuf {
         int size;
 } ringbuf;
 
-static volatile struct gyro_data m_filteredValue, *m_calibratedValue;
+static volatile struct gyro_data m_filteredValue, *m_calibratedValue, *m_calibratedDisp;
 
 static volatile struct gyro_pos m_integratedValue;
 
@@ -31,6 +32,7 @@ ANTARES_INIT_LOW(gyro_high_init)
 
         // get calibrated value from eeprom
         m_calibratedValue = (struct gyro_data *) eeprom_getptr(0x20); // let this offset be
+        m_calibratedDisp = (struct gyro_data *) eeprom_getptr(0x10);
 }
 
 static void ring_push(const struct gyro_data *data)
@@ -113,6 +115,16 @@ void gyroscope_process_p(struct gyro_data *data)
         m_filteredValue.y -= m_calibratedValue->y;
         m_filteredValue.z -= m_calibratedValue->z;
 
+        if (labs(m_filteredValue.x) < m_calibratedDisp->x) {
+                m_filteredValue.x = 0;
+        }
+        if (labs(m_filteredValue.y) < m_calibratedDisp->y) {
+                m_filteredValue.y = 0;
+        }
+        if (labs(m_filteredValue.z) < m_calibratedDisp->z) {
+                m_filteredValue.z = 0;
+        }
+
         // scale it and integrate
 #if (CONFIG_GYRO_SCALE == 250)
         const float scale = 0.00875;
@@ -168,28 +180,68 @@ void gyroscope_calibrate(void)
 {
         printf("Keep robot still...\n");
 
-        int32_t cal_x = 0, cal_y = 0, cal_z = 0;
+        struct {
+                int32_t val;
+                int32_t min;
+                int32_t max;
+        } cal_x, cal_y, cal_z;
+
+        cal_x.val = 0;
+        cal_y.val = 0;
+        cal_z.val = 0;
 
         for (int i = 0; i < 512; i++) {
                 struct gyro_data *raw = gyro_getData();
-                cal_x += raw->x;
-                cal_y += raw->y;
-                cal_z += raw->z;
+                int32_t x = raw->x;
+                int32_t y = raw->y;
+                int32_t z = raw->z;
+
+                if (i == 0) {
+                        cal_x.min = x;
+                        cal_x.max = x;
+                        cal_y.min = y;
+                        cal_y.max = y;
+                        cal_z.min = z;
+                        cal_z.max = z;
+                } else {
+                        if (x > cal_x.max)
+                                cal_x.max = x;
+                        if (x < cal_x.min)
+                                cal_x.min = x;
+                        if (y > cal_y.max)
+                                cal_y.max = y;
+                        if (y < cal_y.min)
+                                cal_y.min = y;
+                        if (z > cal_z.max)
+                                cal_z.max= z;
+                        if (z < cal_z.min)
+                                cal_z.min = z;
+                }
+                cal_x.val += x;
+                cal_y.val += y;
+                cal_z.val += z;
 
                 delay_ms(2);
                 if (i % 8 == 0)
                         early_putc('*');
         }
 
-        cal_x /= 512;
-        cal_y /= 512;
-        cal_z /= 512;
+        cal_x.val /= 512;
+        cal_y.val /= 512;
+        cal_z.val /= 512;
 
-        m_calibratedValue->x = cal_x;
-        m_calibratedValue->y = cal_y;
-        m_calibratedValue->z = cal_z;
+        m_calibratedValue->x = cal_x.val;
+        m_calibratedValue->y = cal_y.val;
+        m_calibratedValue->z = cal_z.val;
 
-        printf("\nDone. Results: %ld %ld %ld\n", cal_x, cal_y, cal_z);
+        m_calibratedDisp->x = cal_x.max - cal_x.min;
+        m_calibratedDisp->y = cal_y.max - cal_y.min;
+        m_calibratedDisp->z = cal_z.max - cal_z.min;
+
+        printf("\nDone. Results: %ld %ld %ld\n", cal_x.val, cal_y.val, cal_z.val);
+        printf("Dispersions: %ld %ld %ld\n", cal_x.max - cal_x.min,
+                        cal_y.max - cal_y.min,
+                        cal_z.max - cal_z.min);
 
         eeprom_save();
 }
