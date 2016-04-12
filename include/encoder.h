@@ -18,5 +18,7 @@ float enc_getSpeed(int channel);
 int32_t enc_getPath(int channel);
 void enc_reset(int channel);
 
+void enc_disableInterrupt();
+void enc_enableInterrupt();
 
 #endif

@@ -66,33 +66,43 @@ ANTARES_INIT_HIGH(enc_high_init)
 
 void encoder_reset_pos(void)
 {
+        enc_disableInterrupt();       
         m_encPos.x = 0.0;
         m_encPos.y = 0.0;
         m_encPos.left = 0.0;
         m_encPos.right = 0.0;
         m_encPos.theta = 0.0;
+        enc_enableInterrupt();
 }
 
 void encoder_reset_path(void)
 {
+        enc_disableInterrupt();
         m_encPos.left = 0.0;
         m_encPos.right = 0.0;
+        enc_enableInterrupt();
 }
 
 void encoder_get_pos_radians(struct encoder_pos *data)
 {
+        enc_disableInterrupt();
         memcpy(data, (struct encoder_pos *) &m_encPos, sizeof (struct encoder_pos));
+        enc_enableInterrupt();
 }
 
 void encoder_get_pos(struct encoder_pos *data)
 {
+        enc_disableInterrupt();
         data->x = m_encPos.x;
         data->y = m_encPos.y;
 
         data->left = m_encPos.left;
         data->right = m_encPos.right;
 
-        data->theta = m_encPos.theta / M_PI * 180;
+        data->theta = m_encPos.theta;
+        enc_enableInterrupt();
+        
+        data->theta = data->theta / M_PI * 180;
 }
 
 void encoder_set_angle_correction(float cor)
@@ -104,6 +114,7 @@ void encoder_set_angle_correction(float cor)
         eeprom_save();
 }
 
+// This function is running in interrupt context
 void encoder_process_p(int32_t di_left, int32_t di_right)
 {
         // process delta from ticks to millimeters

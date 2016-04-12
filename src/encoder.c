@@ -319,7 +319,6 @@ static inline void enc_process_right()
         }
 }
 
-
 void TIM1_CC_IRQHandler(void)
 {
         if (TIM_GetITStatus(TIM1, TIM_IT_CC1) != RESET) {
@@ -336,6 +335,18 @@ void TIM8_CC_IRQHandler(void)
                 enc_process_right();
                 TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);
         }
+}
+
+void enc_disableInterrupt(void)
+{
+        NVIC_DisableIRQ(TIM1_CC_IRQn);
+        NVIC_DisableIRQ(TIM8_CC_IRQn);
+}
+
+void enc_enableInterrupt(void)
+{
+        NVIC_EnableIRQ(TIM1_CC_IRQn);
+        NVIC_EnableIRQ(TIM8_CC_IRQn);
 }
 
 float enc_getSpeed(int channel)
