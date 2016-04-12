@@ -2,6 +2,7 @@
 
 #include "chassis.h"
 #include "shell.h"
+#include "control.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,9 +109,11 @@ ANTARES_INIT_LOW(chassis_init)
 }
 
 void chassis_callback(int argc, char *argv[]);
+void chassis_ctrl_callback(uint8_t len, const uint8_t *data);
 
 ANTARES_INIT_HIGH(chassis_shell_init)
 {
+        control_register(0x01, chassis_ctrl_callback);       
         shell_register("chassis", chassis_callback);
 }
 
@@ -140,6 +143,29 @@ void chassis_callback(int argc, char *argv[])
         }
 }
 
+void chassis_ctrl_callback(uint8_t len, const uint8_t *data)
+{
+        // parse message
+        if (len == 0)
+                return;
+
+        if (data[0] == 0x00) { // disable chassis
+                chassis_cmd(0);
+        } else if (data[0] == 0x01) {
+                chassis_cmd(1);
+        } else if (data[0] == 0x02) {
+                if (len != 5) {
+                        return;
+                }
+                int16_t *left, *right;
+                left = (int16_t *) &data[1];
+                right = (int16_t *) &data[3];
+
+                chassis_write(*left, *right);
+        } else if (data[0] == 0x03) {
+                chassis_write(0, 0);
+        }
+}
 
 void chassis_set_dir(chassis_unit_t u, chassis_dir_t dir)
 {
