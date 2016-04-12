@@ -7,6 +7,7 @@
 #include "encoder.h"
 #include "timer.h"
 #include "shell.h"
+#include "control.h"
 
 #include <stdio.h>
 
@@ -29,7 +30,13 @@ ANTARES_APP(blinky) {
 
         printf("Hello!\n");
 
+        int control = 1;
+
         while (1) {
+
+                while (control) {
+                        control_loop(&control);
+                }
                 shell_loop();
         }
         /* while (1) { */
