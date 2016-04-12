@@ -15,6 +15,7 @@
 #include "eeprom.h"
 #include "timer.h"
 
+#include "control.h"
 #include "shell.h"
 #include <stdio.h>
 #include <string.h>
@@ -135,6 +136,45 @@ void movement_cmd_callback(int argc, char *argv[])
                 sscanf(argv[2], "%g", &d_angle);
 
                 movement_start_rotate(speed, d_angle, 1);
+        }
+}
+
+int movement_isbusy()
+{
+        return m_isBusy;
+}
+
+void movement_ctl_callback(uint8_t len, const uint8_t *buf)
+{
+        if (len == 0)
+                return;
+
+        if (buf[0] == 0x00) {
+                early_putc(movement_isbusy() > 0 ? 0x01 : 0x00);
+        } else if (buf[0] == 0x01) {
+                int16_t *speed, *dst;
+
+                if (len != 5)
+                        return;
+
+                speed = (int16_t *) &buf[1];
+                dst = (int16_t *) &buf[3];
+
+                float d = *dst;
+
+                movement_start_line(*speed, d, 0);
+        } else if (buf[0] == 0x02) {
+                int16_t *speed, *dst;
+
+                if (len != 5)
+                        return;
+
+                speed = (int16_t *) &buf[1];
+                dst = (int16_t *) &buf[3];
+
+                float d = *dst;
+
+                movement_start_rotate(*speed, d, 0);
         }
 }
 
@@ -269,6 +309,7 @@ void movement_callback(int argc, char *argv[])
 
 ANTARES_INIT_HIGH(movement_callback_init)
 {
+        control_register(0x02, movement_ctl_callback);
         shell_register("move", movement_callback);
         m_moveSettings = (struct move_settings *) eeprom_getptr(0x100);
 }
