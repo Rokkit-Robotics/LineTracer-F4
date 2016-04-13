@@ -11,6 +11,7 @@
 #include "encoder_high.h"
 #include "gyroscope_high.h"
 #include "chassis.h"
+#include "rangefinders.h"
 
 #include "eeprom.h"
 #include "timer.h"
@@ -180,8 +181,12 @@ void movement_ctl_callback(uint8_t len, const uint8_t *buf)
 
 void movement_start_line(int32_t speed, float distance, int console)
 {
+        if (distance < 0.1)
+                return;
+
         m_moveLine.speed = speed;
         m_moveLine.distance = distance;
+
 
         gyroscope_reset();
         encoder_reset_path();
@@ -207,6 +212,9 @@ void movement_start_line(int32_t speed, float distance, int console)
 
 void movement_start_rotate(int32_t speed, float delta_angle, int console)
 {
+        if (delta_angle < 0.01)
+                return;
+
         m_moveRotate.speed = speed;
         m_moveRotate.delta_angle = delta_angle;
         m_moveRotate.min = 0.0;

@@ -4,7 +4,7 @@
 // Params: base speed, base angle, distance
 void handle_line_speed(void)
 {
-        int mode = MODE_LINE_SPEED;
+        int mode = 1; // MODE_LINE_SPEED
         
         struct encoder_pos enc;
         encoder_get_pos(&enc);
@@ -33,7 +33,7 @@ void handle_line(void)
         static float integral = 0.0, prev_error = 0.0;
 
         const float dt = 1.0 / CONFIG_MOVE_FQ;
-        const int mode = MODE_LINE;
+        const int mode = 0; // MODE_LINE
 
         // get errors from encoder and gyro
         struct encoder_pos enc;
@@ -52,10 +52,18 @@ void handle_line(void)
                 return;
         }
 
-        // error from encoder - path difference
-        float enc_error = enc.left - enc.right;
+        float error = 0;
 
-        float error = m_moveSettings[mode].enc_weight * enc_error + m_moveSettings[mode].gyro_weight * gyro.z;
+        // first - try to get error from rangefinders
+        int32_t r1 = rangefinders_get(1), r2 = rangefinders_get(2);
+        if (r1 < m_moveSettings[mode].min_speed && r2 < m_moveSettings[mode].min_speed) { // if we are between walls
+                float sonar_error = r2 - r1;
+                error = m_moveSettings[mode].gyro_weight * sonar_error;
+        } else {
+                // error from encoder - path difference
+                float enc_error = enc.left - enc.right;
+                error = m_moveSettings[mode].enc_weight * enc_error;
+        }
 
         integral += error * dt;
 
