@@ -31,6 +31,7 @@ void handle_line_speed(void)
 void handle_line(void)
 {
         static float integral = 0.0, prev_error = 0.0;
+        static int last_sonar = 0;
 
         const float dt = 1.0 / CONFIG_MOVE_FQ;
         const int mode = 0; // MODE_LINE
@@ -43,7 +44,9 @@ void handle_line(void)
         gyroscope_read_pos(&gyro);
         
         // if we have reached destination - time to stop
-        if (enc.left + enc.right > 2 * m_moveLine.distance) {
+#define min(a, b) ((a) > (b) ? (b) : (a))
+        /* if (min(enc.left, enc.right) > m_moveLine.distance) { */
+        if ((enc.left + enc.right) / 2 > m_moveLine.distance) {
                 chassis_write(0, 0);
                 integral = 0;
                 prev_error = 0;
@@ -59,11 +62,17 @@ void handle_line(void)
         if (r1 < m_moveSettings[mode].min_speed && r2 < m_moveSettings[mode].min_speed) { // if we are between walls
                 float sonar_error = r2 - r1;
                 error = m_moveSettings[mode].gyro_weight * sonar_error;
+                last_sonar = 1;
         } else {
                 // error from encoder - path difference
-                float enc_error = enc.left - enc.right;
-                error = m_moveSettings[mode].enc_weight * enc_error;
+                last_sonar = 0;
         }
+
+        float enc_error = enc.left - enc.right;
+        error += m_moveSettings[mode].enc_weight * enc_error;
+
+        if (last_sonar)
+                error /= 2;
 
         integral += error * dt;
 
@@ -78,3 +87,7 @@ void handle_line(void)
         chassis_write(m_moveLine.base_speed - reg, m_moveLine.base_speed + reg);
 }
 
+void handle_line_stage2()
+{
+
+}
