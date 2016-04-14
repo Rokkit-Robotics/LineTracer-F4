@@ -19,6 +19,7 @@
 #include "control.h"
 #include "shell.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -212,9 +213,6 @@ void movement_start_line(int32_t speed, float distance, int console)
 
 void movement_start_rotate(int32_t speed, float delta_angle, int console)
 {
-        if (delta_angle < 0.01)
-                return;
-
         m_moveRotate.speed = speed;
         m_moveRotate.delta_angle = delta_angle;
         m_moveRotate.min = 0.0;
@@ -243,8 +241,10 @@ void movement_start_rotate(int32_t speed, float delta_angle, int console)
                                 m_moveRotate.max - m_moveRotate.min);
         }
 
-        chassis_write(0, 0);
-        m_isBusy = 0;
+        if (console) {
+                chassis_write(0, 0);
+                m_isBusy = 0;
+        }
 }
 
 void movement_callback(int argc, char *argv[])
